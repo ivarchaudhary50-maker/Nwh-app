@@ -2,422 +2,336 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GarmentOS v25 - Enterprise</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Rabi Kapada Ledger - Cloud</title>
     
-    <link rel="manifest" href='data:application/manifest+json;utf-8,%7B%22name%22%3A%22GarmentOS%22%2C%22short_name%22%3A%22GarmentOS%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%232563eb%22%2C%22theme_color%22%3A%22%232563eb%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%3Butf8%2C%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20100%20100%27%3E%3Ccircle%20cx%3D%2750%27%20cy%3D%2750%27%20r%3D%2750%27%20fill%3D%27%25232563eb%27%2F%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D'>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <style>
         :root {
-            --bg: #f8fafc;
+            --bg: #f3f4f6;
             --surface: #ffffff;
-            --primary: #2563eb;
-            --primary-soft: #dbeafe;
-            --text-dark: #1e293b;
-            --text-light: #64748b;
-            --red: #ef4444;
-            --green: #22c55e;
-            --warn: #f59e0b;
+            --primary: #000000;
+            --text-dark: #111827;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --red: #dc2626;
+            --green: #059669;
+            --blue: #2563eb;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg); color: var(--text-dark); font-family: -apple-system, sans-serif; margin: 0; padding: 0; line-height: 1.5; }
+        body { background-color: var(--bg); color: var(--text-dark); font-family: -apple-system, sans-serif; margin: 0; padding: 0; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
-        #pinScreen { position: fixed; inset: 0; background: var(--primary); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .pin-card { background: white; padding: 30px; border-radius: 24px; width: 85%; max-width: 320px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-        .pin-input { width: 100%; font-size: 32px; letter-spacing: 12px; text-align: center; border: 2px solid #e2e8f0; border-radius: 16px; padding: 12px; margin: 20px 0; outline: none; }
-
-        /* NOTIFICATION BANNERS */
-        .banner { display: none; color: white; text-align: center; padding: 12px; font-size: 13px; font-weight: 800; cursor: pointer; }
-        #backupNag { background: var(--red); animation: pulse 2s infinite; }
-        #installBanner { background: var(--primary); border-bottom: 2px solid #1e40af; }
-        @keyframes pulse { 0% { background: var(--red); } 50% { background: #dc2626; } 100% { background: var(--red); } }
-
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; padding-bottom: 100px; display: none; }
-        .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .app-header h1 { font-size: 24px; font-weight: 900; margin: 0; color: var(--primary); letter-spacing: -0.5px;}
-
-        .btn-shift { background: var(--text-dark); color: white; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
-
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 12px; border-top: 1px solid #e2e8f0; z-index: 1000; }
-        .nav-item { border: none; background: none; color: var(--text-light); font-size: 11px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .nav-item.active { color: var(--primary); }
-        .nav-icon { font-size: 20px; }
-
-        .section { display: none; animation: slideUp 0.3s ease-out; }
-        .section.active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .card { background: var(--surface); border-radius: 20px; padding: 20px; border: 1px solid #e2e8f0; margin-bottom: 15px; position: relative;}
+        .svg-icon { width: 20px; height: 20px; stroke-width: 2; stroke: currentColor; fill: none; stroke-linecap: round; stroke-linejoin: round; }
         
-        label { font-size: 11px; font-weight: 800; color: var(--text-light); text-transform: uppercase; margin-bottom: 6px; display: block; letter-spacing: 0.5px;}
-        input, select { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 16px; margin-bottom: 15px; outline: none; }
-        input:focus { border-color: var(--primary); background: #fff; }
+        /* PIN SCREEN */
+        #pinScreen { position: fixed; inset: 0; background: var(--surface); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;}
+        .pin-input { width: 100%; max-width: 300px; font-size: 32px; letter-spacing: 20px; font-weight: 700; text-align: center; border: none; border-bottom: 2px solid var(--border); padding: 10px; margin: 30px 0; outline: none; border-radius: 0; background: transparent;}
+        .pin-input:focus { border-bottom-color: var(--primary); }
 
-        .btn { border: none; border-radius: 14px; padding: 16px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.2s; width: 100%; }
+        /* HEADER */
+        .container { max-width: 600px; margin: 0 auto; padding: 0 16px 100px 16px; display: none; }
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 0 16px 0; position: sticky; top: 0; background: var(--bg); z-index: 100; border-bottom: 1px solid var(--border); margin-bottom: 16px;}
+        .app-header h1 { font-size: 20px; font-weight: 700; margin: 0; color: var(--text-dark); letter-spacing: -0.5px;}
+
+        /* BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 10px 10px 20px 10px; z-index: 1000; }
+        .nav-item { border: none; background: transparent; color: var(--text-light); font-size: 11px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; width: 25%; transition: 0.2s;}
+        .nav-item.active { color: var(--blue); }
+        .nav-item .svg-icon { width: 24px; height: 24px; }
+
+        /* SECTIONS & CARDS */
+        .section { display: none; }
+        .section.active { display: block; animation: fadeIn 0.2s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+
+        /* INPUTS */
+        label { font-size: 12px; font-weight: 600; color: var(--text-light); margin-bottom: 6px; display: block; }
+        input, select { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); font-size: 16px; color: var(--text-dark); margin-bottom: 16px; outline: none; transition: 0.2s; -webkit-appearance: none;}
+        input:focus, select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        
+        /* BUTTONS */
+        .btn { border: none; border-radius: 8px; padding: 16px; font-weight: 600; font-size: 15px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.1s;}
+        .btn:active { opacity: 0.8; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-debt { background: var(--red); color: white; }
         .btn-paid { background: var(--green); color: white; }
-        .btn-ob { background: #94a3b8; color: white; margin-top: 10px;}
-        .btn-call { background: var(--primary-soft); color: var(--primary); font-size: 12px; padding: 6px 16px; border-radius: 10px; font-weight: 800; text-decoration: none; display: inline-block; }
-        .btn-del { position: absolute; bottom: 15px; right: 15px; background: #f1f5f9; border: none; color: var(--red); font-size: 14px; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-contact { background: var(--primary-soft); color: var(--primary); border: none; padding: 4px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; text-transform: uppercase;}
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-dark); }
         
-        .sup-card { display: flex; flex-direction: column; gap: 8px; cursor: pointer;}
-        .sup-row { display: flex; justify-content: space-between; align-items: center; }
-        .sup-name { font-size: 17px; font-weight: 800; }
-        .sup-meta { font-size: 12px; color: var(--text-light); font-weight: 500;}
-        .sup-bal { font-weight: 900; font-size: 16px; }
+        /* DIRECTORY LIST */
+        .sup-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); cursor: pointer;}
+        .sup-row:last-child { border-bottom: none; }
+        .sup-name { font-size: 16px; font-weight: 600; color: var(--text-dark); display: block;}
+        .sup-meta { font-size: 13px; color: var(--text-light); display: block; margin-top: 2px;}
+        .sup-bal { font-weight: 700; font-size: 16px; text-align: right; display: block;}
 
-        #toast { visibility: hidden; position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; font-size: 13px; font-weight: 600; z-index: 2000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); white-space: nowrap; }
-        #toast.show { visibility: visible; animation: fadeInOut 2.5s; }
+        /* STATEMENTS */
+        #stmtSummaryCard { text-align: center; background: var(--surface); }
+        #stmtBalance { font-size: 32px; margin: 8px 0; font-weight: 700;}
+        .tx-card { padding: 16px 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;}
+        .tx-top { display: flex; justify-content: space-between; align-items: center; }
+        .tx-title { font-weight: 600; font-size: 15px; color: var(--text-dark); }
+        .tx-amt { font-weight: 700; font-size: 15px; }
+        .tx-meta { font-size: 13px; color: var(--text-light); display: flex; justify-content: space-between;}
+        
+        .tx-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+        .btn-text { background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px; color: var(--blue);}
+        .btn-text.delete { color: var(--red); }
 
-        /* PRINT / PDF STYLES */
-        .print-header { display: none; text-align: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
-        @media print { 
-            body { background: white; color: black; }
-            .bottom-nav, .app-header, .nav-item, #entry, #suppliers, #data, .btn-del, .btn-call, #backupNag, #installBanner, label[for="statementSelect"], select#statementSelect, .filter-box { display: none !important; } 
-            .container { display: block !important; padding: 0; max-width: 100%; }
-            .card { border: none !important; box-shadow: none !important; padding: 10px 0 !important; margin-bottom: 0 !important; border-bottom: 1px solid #ccc !important; border-radius: 0 !important;}
-            .print-header { display: block; }
-            .print-header h1 { font-size: 28px; margin: 0; color: black; }
-            .print-header p { margin: 5px 0; font-size: 14px; color: #555; }
-            img { max-width: 300px !important; width: auto !important; display: block; margin-top: 10px; page-break-inside: avoid; }
-            .sup-row { align-items: flex-start; }
-            #stmtBalance { font-size: 24px; }
-        }
+        /* MODALS & TOAST */
+        #imageViewer { display: none; position: fixed; inset: 0; background: #000; z-index: 20000; justify-content: center; align-items: center; }
+        #imageViewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .close-viewer { position: absolute; top: 20px; right: 20px; color: white; cursor: pointer; padding: 10px;}
+
+        #toast { visibility: hidden; position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: var(--text-dark); color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 3000; }
+        #toast.show { visibility: visible; }
+        
+        /* CLOUD STATUS INDICATOR */
+        #cloudStatus { font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;}
+        .status-online { background: #dcfce7; color: #166534; }
+        .status-sync { background: #fef9c3; color: #854d0e; }
+        .status-error { background: #fee2e2; color: #991b1b; }
     </style>
 </head>
 <body>
 
 <div id="toast">Message</div>
 
-<div id="pinScreen">
-    <div class="pin-card">
-        <h2 id="pinTitle" style="color:var(--primary); margin:0;">GarmentOS</h2>
-        <p id="pinDesc" style="color:var(--text-light); font-size:13px; margin-top:8px;">Enter PIN to unlock</p>
-        <input type="password" id="pinInput" class="pin-input" maxlength="4" inputmode="numeric">
-        <button class="btn btn-primary" onclick="verifyPin()">Unlock Ledger</button>
-    </div>
+<div id="imageViewer" onclick="this.style.display='none'">
+    <div class="close-viewer"><svg class="svg-icon"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
+    <img id="fullImage" src="" />
 </div>
 
-<div id="installBanner" class="banner" onclick="installApp()">
-    📲 INSTALL APP: Tap here to add GarmentOS to your Home Screen
-</div>
-<div id="backupNag" class="banner" onclick="exportToCSV(false)">
-    ⚠️ BACKUP REQUIRED: Tap here to secure recent data!
+<div id="pinScreen">
+    <h2 id="pinTitle" style="margin:0 0 8px 0; font-size: 24px;">Rabi Kapada</h2>
+    <p id="pinDesc" style="color:var(--text-light); margin:0; font-size: 14px;">Enter PIN to decrypt local session</p>
+    <input type="password" id="pinInput" class="pin-input" maxlength="4" inputmode="numeric">
+    <button class="btn btn-primary" onclick="verifyPin()" style="max-width: 300px;">Unlock</button>
 </div>
 
 <div class="container" id="mainApp">
     
-    <div class="print-header">
-        <h1>Rabi Kapada Pasal</h1>
-        <p>Statement of Account</p>
-        <p id="printSupName" style="font-weight:bold; font-size: 18px;"></p>
-        <p id="printDateRange"></p>
-    </div>
-
     <div class="app-header">
-        <h1>Rabi Kapada Pasal</h1>
-        <button class="btn-shift" onclick="endShift()">🔒 End Shift</button>
+        <h1>Rabi Kapada Ledger</h1>
+        <div id="cloudStatus" class="status-sync"><svg class="svg-icon" style="width:12px; height:12px;"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-8.21l-3.23 3.23"/></svg> Connecting...</div>
     </div>
 
     <div id="entry" class="section active">
         <div class="card">
-            <label>Supplier / Firm</label>
-            <select id="supplierSelect"><option value="">-- Select --</option></select>
+            <label>SUPPLIER</label>
+            <select id="supplierSelect"><option value="" disabled selected>Select a firm...</option></select>
             
-            <div style="display: flex; gap: 10px;">
-                <div style="flex:1;"><label>Amount</label><input type="number" id="amt" placeholder="0.00"></div>
-                <div style="flex:1;"><label>Date</label><input type="date" id="txDate"></div>
+            <div style="display: flex; gap: 12px;">
+                <div style="flex:1;">
+                    <label>AMOUNT (RS)</label>
+                    <input type="number" id="amt" placeholder="0.00">
+                </div>
+                <div style="flex:1;">
+                    <label>DATE</label>
+                    <input type="date" id="txDate">
+                </div>
             </div>
             
-            <label>📸 Capture Receipt (Optional)</label>
-            <input type="file" id="txImage" accept="image/*" capture="environment">
+            <label>ATTACH RECEIPT (OPTIONAL)</label>
+            <input type="file" id="txImage" accept="image/*" capture="environment" style="padding: 10px; border-style: dashed;">
             
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
                 <button class="btn btn-debt" onclick="processEntry(true, 'Bill')">Add Bill</button>
                 <button class="btn btn-paid" onclick="processEntry(false, 'Payment')">Add Payment</button>
             </div>
-            <button class="btn btn-ob" onclick="processEntry(true, 'Opening Balance')">Add Old Dues (Opening Balance)</button>
+            <button class="btn btn-outline" style="margin-top: 12px;" onclick="processEntry(true, 'Opening Balance')">Log Past Dues</button>
         </div>
     </div>
 
     <div id="suppliers" class="section">
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <label style="margin-bottom: 0;">Firm Name</label>
-                <button class="btn-contact" onclick="importContact()">👤 Import Contact</button>
-            </div>
+        <div class="card" style="border: none; padding: 0; margin-bottom: 24px; background: transparent;">
+            <label>NEW FIRM NAME</label>
             <input type="text" id="supName" placeholder="e.g. Shyam Fabrics">
             
-            <label>Category (Optional)</label>
-            <input type="text" id="supCategory" placeholder="e.g. Fabric, Threads">
-            
-            <label>Phone Number</label>
-            <input type="tel" id="supPhone" placeholder="Mobile">
+            <div style="display: flex; gap: 12px;">
+                <div style="flex:1;">
+                    <label>CATEGORY</label>
+                    <input type="text" id="supCategory" placeholder="e.g. Fabric">
+                </div>
+                <div style="flex:1;">
+                    <label>PHONE</label>
+                    <input type="tel" id="supPhone" placeholder="Mobile">
+                </div>
+            </div>
             
             <button class="btn btn-primary" onclick="addSupplier()">Register Supplier</button>
         </div>
-        <input type="text" id="searchInput" onkeyup="filterDirectory()" placeholder="🔍 Search Suppliers..." style="margin-bottom:20px; width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
-        <div id="supplierList"></div>
+        
+        <input type="text" id="searchInput" onkeyup="filterDirectory()" placeholder="Search suppliers..." style="background: white;">
+        <div id="supplierList" class="card" style="padding: 0 16px;"></div>
     </div>
 
     <div id="statements" class="section">
-        <div class="card">
-            <label for="statementSelect">View Statement</label>
-            <select id="statementSelect" onchange="generateStatement()"><option value="">-- Choose Firm --</option></select>
-            
-            <div class="filter-box" style="display: flex; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
-                <div style="flex:1;"><label>From</label><input type="date" id="filterStart" onchange="generateStatement()"></div>
-                <div style="flex:1;"><label>To</label><input type="date" id="filterEnd" onchange="generateStatement()"></div>
-            </div>
+        <div class="card" style="border:none; padding:0; background:transparent;">
+            <select id="statementSelect" onchange="generateStatement()"><option value="" disabled selected>Select firm to view Khata...</option></select>
         </div>
         
         <div id="statementContent" style="display:none;">
-            <div class="card" style="text-align: center; background: var(--primary-soft); border:none;" id="stmtSummaryCard">
-                <label style="color:var(--primary)">Balance (Filtered Period)</label>
-                <h2 id="stmtBalance" style="margin:5px 0; font-size:32px;">Rs. 0</h2>
-                <div id="stmtPhoneContainer" style="margin-top: 10px;"></div>
-                <button onclick="window.print()" class="btn-call" style="margin-top: 15px; background: white; border: 1px solid var(--primary);">🖨️ Create PDF Statement</button>
+            <div class="card" id="stmtSummaryCard">
+                <label>NET BALANCE</label>
+                <h2 id="stmtBalance">Rs. 0</h2>
+                <div id="stmtPhoneContainer"></div>
             </div>
-            <div id="statementHistory"></div>
+            <div class="card" style="padding: 0 16px;" id="statementHistory"></div>
         </div>
     </div>
 
     <div id="data" class="section">
-        <div class="card" style="border: 2px solid var(--primary-soft);">
-            <h3 style="margin-bottom: 5px; color: var(--primary); margin-top:0;">Offline Vault</h3>
-            <p style="font-size: 12px; color: var(--text-light); margin-bottom: 20px;">Data lives in this tablet's deep storage. Back it up frequently.</p>
+        <div class="card">
+            <h3 style="margin: 0 0 16px 0; font-size: 16px;">Cloud Database</h3>
+            <p style="font-size: 13px; color: var(--text-light); margin-bottom: 24px;">Your data is instantly synced to Firebase. No manual backups required, but you can export a CSV for your local records.</p>
             
-            <button class="btn btn-primary" style="margin-bottom: 25px;" onclick="exportToCSV(false)">📥 Backup to Excel / Drive</button>
-            
-            <label>Restore Data (Replaces current ledger)</label>
-            <input type="file" id="importFile" accept=".csv" style="margin-bottom: 10px;" onchange="importCSV(event)">
-            
-            <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 25px 0;">
-            
-            <label style="color: var(--red);">System Settings</label>
-            <button class="btn btn-debt" onclick="clearData()">⚠️ Format Device & Erase All</button>
+            <button class="btn btn-primary" onclick="exportToCSV()">Export to Excel</button>
         </div>
     </div>
 
     <div class="bottom-nav">
         <button class="nav-item active" onclick="switchTab('entry', this)">
-            <span class="nav-icon">➕</span><span>Entry</span>
+            <svg class="svg-icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Entry
         </button>
         <button class="nav-item" onclick="switchTab('suppliers', this)">
-            <span class="nav-icon">📇</span><span>Firms</span>
+            <svg class="svg-icon"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Firms
         </button>
         <button class="nav-item" onclick="switchTab('statements', this)">
-            <span class="nav-icon">📜</span><span>Khata</span>
+            <svg class="svg-icon"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Khata
         </button>
         <button class="nav-item" onclick="switchTab('data', this)">
-            <span class="nav-icon">💾</span><span>Data</span>
+            <svg class="svg-icon"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            Data
         </button>
     </div>
 </div>
 
 <script>
-    // --- PWA INSTALLATION LOGIC ---
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        document.getElementById('installBanner').style.display = 'block';
-    });
+    // ====================================================================
+    // YOUR SECURE FIREBASE CONFIGURATION (DO NOT SHARE PUBLICLY)
+    // ====================================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyADlEGFdU0t7pAMvOrZTWgpAFUkbPWm7R0",
+      authDomain: "kapada-6283b.firebaseapp.com",
+      projectId: "kapada-6283b",
+      storageBucket: "kapada-6283b.firebasestorage.app",
+      messagingSenderId: "25954227994",
+      appId: "1:25954227994:web:b162c3e5f46055dd59bea3"
+    };
+    // ====================================================================
 
-    function installApp() {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt.userChoice.then((choiceResult) => {
-                if (choiceResult.outcome === 'accepted') {
-                    document.getElementById('installBanner').style.display = 'none';
-                }
-                deferredPrompt = null;
-            });
-        }
-    }
-
-    // --- INLINE SERVICE WORKER FOR PWA ---
-    if ('serviceWorker' in navigator) {
-        const swCode = `self.addEventListener('fetch', function(e) {});`;
-        const blob = new Blob([swCode], { type: 'application/javascript' });
-        navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(console.error);
-    }
-
-    // --- DATABASE ENGINE ---
     let db;
     let suppliers = [];
     let txs = [];
-    
-    // --- STATE TRACKERS ---
-    let savedPin = localStorage.getItem('v25_pin');
-    let lastBackupTime = parseInt(localStorage.getItem('v25_lastBackupTime')) || Date.now();
-    let unbackedTxCount = parseInt(localStorage.getItem('v25_unbackedTxCount')) || 0;
+    let savedPin = localStorage.getItem('v30_pin');
 
-    function initDatabase() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open("GarmentOS_DB_v3", 1);
-            request.onupgradeneeded = function(e) {
-                db = e.target.result;
-                if (!db.objectStoreNames.contains("suppliers")) db.createObjectStore("suppliers", { keyPath: "id" });
-                if (!db.objectStoreNames.contains("txs")) db.createObjectStore("txs", { keyPath: "id" });
-            };
-            request.onsuccess = function(e) { db = e.target.result; loadDataFromDB().then(resolve); };
-            request.onerror = function(e) { showToast("Storage Error"); reject(); };
-        });
-    }
-
-    function loadDataFromDB() {
-        return new Promise((resolve) => {
-            const tx = db.transaction(["suppliers", "txs"], "readonly");
-            const reqSup = tx.objectStore("suppliers").getAll();
-            const reqTxs = tx.objectStore("txs").getAll();
-            
-            tx.oncomplete = function() {
-                suppliers = reqSup.result || [];
-                txs = reqTxs.result || [];
-                txs.sort((a, b) => b.id.localeCompare(a.id));
-                resolve();
-            };
-        });
-    }
-
-    function saveToStore(storeName, dataObj) {
-        const tx = db.transaction([storeName], "readwrite");
-        tx.objectStore(storeName).put(dataObj);
-    }
-
-    function deleteFromStore(storeName, id) {
-        const tx = db.transaction([storeName], "readwrite");
-        tx.objectStore(storeName).delete(id);
-    }
-
-    function wipeDatabase() {
-        const tx = db.transaction(["suppliers", "txs"], "readwrite");
-        tx.objectStore("suppliers").clear();
-        tx.objectStore("txs").clear();
-    }
-
-    // --- SECURITY & STARTUP ---
-    if (!savedPin) { document.getElementById('pinTitle').innerText = "Set your PIN"; }
-    
+    // --- SECURITY ---
+    if (!savedPin) { document.getElementById('pinTitle').innerText = "Create PIN"; }
     function verifyPin() {
         const val = document.getElementById('pinInput').value;
         if (!savedPin) { 
             if(val.length !== 4) return alert("PIN must be exactly 4 digits");
-            localStorage.setItem('v25_pin', val); 
-            savedPin = val; 
-            startApp(); 
+            localStorage.setItem('v30_pin', val); savedPin = val; startApp(); 
         }
         else if (val === savedPin) { startApp(); }
-        else { alert("Wrong PIN"); document.getElementById('pinInput').value = ''; }
+        else { document.getElementById('pinInput').value = ''; }
     }
-    
+
+    function setCloudStatus(status, msg) {
+        const el = document.getElementById('cloudStatus');
+        el.className = 'status-' + status;
+        if(status === 'online') el.innerHTML = `<svg class="svg-icon" style="width:12px; height:12px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> ${msg}`;
+        else if(status === 'error') el.innerHTML = `⚠️ ${msg}`;
+        else el.innerHTML = `⏳ ${msg}`;
+    }
+
     function startApp() { 
         document.getElementById('pinScreen').style.display = 'none'; 
         document.getElementById('mainApp').style.display = 'block'; 
-        initDatabase().then(() => {
+
+        // Initialize Cloud Database
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        db = firebase.firestore();
+
+        // REAL-TIME SYNC: Listeners constantly grab fresh data from the cloud
+        db.collection("suppliers").onSnapshot((snapshot) => {
+            suppliers = [];
+            snapshot.forEach(doc => suppliers.push(doc.data()));
             renderUI();
-            checkBackupStatus();
+            setCloudStatus('online', 'Live');
+        }, (error) => {
+            console.error(error);
+            setCloudStatus('error', 'Sync Failed (Check DB Rules)');
+        });
+
+        db.collection("txs").onSnapshot((snapshot) => {
+            txs = [];
+            snapshot.forEach(doc => txs.push(doc.data()));
+            txs.sort((a, b) => b.id.localeCompare(a.id)); // Sort newest first
+            renderUI();
+            if(document.getElementById('statementSelect').value) generateStatement();
         });
     }
 
-    function lockApp() {
-        document.getElementById('mainApp').style.display = 'none';
-        document.getElementById('backupNag').style.display = 'none';
-        document.getElementById('pinScreen').style.display = 'flex';
-        document.getElementById('pinInput').value = '';
+    // --- CLOUD WRITE FUNCTIONS ---
+    function saveToCloud(collection, data) {
+        setCloudStatus('sync', 'Saving...');
+        db.collection(collection).doc(data.id).set(data)
+            .then(() => setCloudStatus('online', 'Saved'))
+            .catch(err => { setCloudStatus('error', 'Save Failed'); alert(err.message); });
     }
 
-    function trackNewEntry() {
-        unbackedTxCount++;
-        localStorage.setItem('v25_unbackedTxCount', unbackedTxCount);
-        checkBackupStatus();
-    }
-
-    function resetBackupTracker() {
-        lastBackupTime = Date.now();
-        unbackedTxCount = 0;
-        localStorage.setItem('v25_lastBackupTime', lastBackupTime);
-        localStorage.setItem('v25_unbackedTxCount', unbackedTxCount);
-        checkBackupStatus();
-    }
-
-    function checkBackupStatus() {
-        const hoursSinceBackup = (Date.now() - lastBackupTime) / (1000 * 60 * 60);
-        if (unbackedTxCount >= 5 || hoursSinceBackup >= 24) {
-            document.getElementById('backupNag').style.display = 'block';
-        } else {
-            document.getElementById('backupNag').style.display = 'none';
-        }
-    }
-
-    async function importContact() {
-        const supported = ('contacts' in navigator && 'ContactsManager' in window);
-        if (!supported) return showToast("Contact import not supported here.");
-        try {
-            const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
-            if (contacts && contacts.length > 0) {
-                if (contacts[0].name) document.getElementById('supName').value = contacts[0].name[0];
-                if (contacts[0].tel) document.getElementById('supPhone').value = contacts[0].tel[0].replace(/[\s-]/g, '');
-            }
-        } catch (ex) { console.error(ex); showToast("Could not access contacts."); }
+    function deleteFromCloud(collection, id) {
+        setCloudStatus('sync', 'Deleting...');
+        db.collection(collection).doc(id).delete()
+            .then(() => setCloudStatus('online', 'Live'))
+            .catch(err => setCloudStatus('error', 'Delete Failed'));
     }
 
     // --- UI LOGIC ---
     function renderUI() {
         document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
         const s1 = document.getElementById('supplierSelect'), s2 = document.getElementById('statementSelect');
-        s1.innerHTML = s2.innerHTML = '<option value="">-- Select --</option>';
+        const currentS1 = s1.value, currentS2 = s2.value; // Keep current selection
+        
+        s1.innerHTML = '<option value="" disabled selected>Select a firm...</option>'; 
+        s2.innerHTML = '<option value="" disabled selected>Select a firm...</option>';
         const list = document.getElementById('supplierList'); list.innerHTML = '';
         
         suppliers.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
             let bal = txs.filter(t => t.supId === s.id).reduce((acc, t) => t.isDebt ? acc + t.val : acc - t.val, 0);
-            s1.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+            s1.innerHTML += `<option value="${s.id}">${s.name}</option>`; 
             s2.innerHTML += `<option value="${s.id}">${s.name}</option>`;
             
-            let callBtnHtml = s.phone ? `<a href="tel:${s.phone}" class="btn-call" onclick="event.stopPropagation()">📞 Call</a>` : '';
-
             list.innerHTML += `
-                <div class="card sup-card" onclick="jumpToStmt('${s.id}')">
-                    <div class="sup-row">
+                <div class="sup-row" onclick="jumpToStmt('${s.id}')">
+                    <div>
                         <span class="sup-name">${s.name}</span>
-                        <span class="sup-bal" style="color:${bal>0?'var(--red)':'var(--green)'}">Rs. ${bal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        <span class="sup-meta">${s.category || 'Vendor'}</span>
                     </div>
-                    <div class="sup-row" style="margin-top: 5px;">
-                        <span class="sup-meta">${s.category || ''}</span>
-                        ${callBtnHtml}
-                    </div>
+                    <span class="sup-bal" style="color:${bal>0?'var(--red)':'var(--green)'}">Rs. ${bal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
                 </div>`;
         });
+        
+        if (currentS1) s1.value = currentS1;
+        if (currentS2) s2.value = currentS2;
     }
 
-    function switchTab(id, btn) {
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-        if(btn) btn.classList.add('active');
-        if(id === 'statements') generateStatement();
-    }
-
-    function jumpToStmt(id) {
-        document.getElementById('statementSelect').value = id;
-        switchTab('statements', document.querySelectorAll('.nav-item')[2]);
-    }
+    function switchTab(id, btn) { document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); if(btn) btn.classList.add('active'); if(id === 'statements') generateStatement(); }
+    function jumpToStmt(id) { document.getElementById('statementSelect').value = id; switchTab('statements', document.querySelectorAll('.nav-item')[2]); }
 
     function addSupplier() {
-        const name = document.getElementById('supName').value.trim().replace(/,/g, '');
-        if (!name) return showToast("Firm name required");
-        
-        const newSupId = "SUP_" + Date.now().toString();
-        const newSup = { id: newSupId, name, category: document.getElementById('supCategory').value.replace(/,/g, ''), phone: document.getElementById('supPhone').value.replace(/,/g, '') };
-        
-        suppliers.push(newSup);
-        saveToStore("suppliers", newSup);
-        renderUI();
-        showToast("Firm Registered");
+        const name = document.getElementById('supName').value.trim(); if (!name) return showToast("Firm name required");
+        const newSup = { id: "SUP_" + Date.now().toString(), name, category: document.getElementById('supCategory').value, phone: document.getElementById('supPhone').value };
+        saveToCloud("suppliers", newSup); 
         document.getElementById('supName').value = ''; document.getElementById('supCategory').value = ''; document.getElementById('supPhone').value = '';
     }
 
@@ -425,194 +339,68 @@
         const f = document.getElementById('txImage').files[0];
         if (f) {
             const reader = new FileReader(); reader.readAsDataURL(f);
-            reader.onload = e => {
-                const img = new Image(); img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-                    const scale = 800 / img.width; canvas.width = 800; canvas.height = img.height * scale;
-                    ctx.drawImage(img, 0, 0, 800, canvas.height);
-                    saveRecord(isDebt, type, canvas.toDataURL('image/jpeg', 0.7));
-                };
-            };
+            reader.onload = e => { const img = new Image(); img.src = e.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const scale = 800 / img.width; canvas.width = 800; canvas.height = img.height * scale; ctx.drawImage(img, 0, 0, 800, canvas.height); saveRecord(isDebt, type, canvas.toDataURL('image/jpeg', 0.6)); }; };
         } else saveRecord(isDebt, type, null);
     }
 
     function saveRecord(isDebt, type, img) {
-        const id = document.getElementById('supplierSelect').value;
-        const val = parseFloat(document.getElementById('amt').value);
+        const id = document.getElementById('supplierSelect').value; const val = parseFloat(document.getElementById('amt').value);
         if (!id || isNaN(val)) return showToast("Please enter an amount");
-        
         const newTx = { id: Date.now().toString(), supId: id, val, isDebt, type: type, date: document.getElementById('txDate').value, img };
-        
-        txs.unshift(newTx);
-        saveToStore("txs", newTx);
-        trackNewEntry();
-        
-        renderUI(); 
-        showToast(type + " Saved");
+        saveToCloud("txs", newTx); 
         document.getElementById('amt').value = ''; document.getElementById('txImage').value = '';
     }
 
-    function deleteTx(id) {
-        if(confirm("Delete this transaction?")) {
-            txs = txs.filter(t => t.id !== id);
-            deleteFromStore("txs", id);
-            renderUI();
-            generateStatement();
-            showToast("Transaction Deleted");
-        }
-    }
+    function deleteTx(id) { if(confirm("Permanently delete this transaction from the cloud?")) deleteFromCloud("txs", id); }
+    function openImage(src) { document.getElementById('fullImage').src = src; document.getElementById('imageViewer').style.display = 'flex'; }
 
     function generateStatement() {
-        const id = document.getElementById('statementSelect').value; 
-        const cont = document.getElementById('statementContent');
+        const id = document.getElementById('statementSelect').value; const cont = document.getElementById('statementContent');
+        if (!id) { cont.style.display = 'none'; return; }
         
-        if (!id) { 
-            cont.style.display = 'none'; 
-            document.querySelector('.print-header').style.display = 'none';
-            return; 
-        }
-        
-        cont.style.display = 'block'; 
-        const s = suppliers.find(x => x.id === id);
-        
-        // 1. Calculate Running Balance for ALL transactions first (to maintain accuracy)
+        cont.style.display = 'block'; const s = suppliers.find(x => x.id === id);
         let sTxsAll = txs.filter(t => t.supId === id).sort((a, b) => new Date(a.date) - new Date(b.date));
-        let currentRunBal = 0;
-        sTxsAll.forEach(t => { 
-            currentRunBal += t.isDebt ? t.val : -t.val; 
-            t.runBal = currentRunBal; 
-        });
-
-        // 2. Apply Date Filters
-        const fStart = document.getElementById('filterStart').value;
-        const fEnd = document.getElementById('filterEnd').value;
         
-        let displayTxs = [...sTxsAll];
-        if (fStart) displayTxs = displayTxs.filter(t => t.date >= fStart);
-        if (fEnd) displayTxs = displayTxs.filter(t => t.date <= fEnd);
-        
-        // Calculate filtered view net change
-        let filteredBal = 0;
-        if(displayTxs.length > 0) {
-            let startBal = displayTxs[0].runBal - (displayTxs[0].isDebt ? displayTxs[0].val : -displayTxs[0].val);
-            let endBal = displayTxs[displayTxs.length - 1].runBal;
-            filteredBal = endBal - startBal;
-        }
+        let currentRunBal = 0; 
+        sTxsAll.forEach(t => { currentRunBal += t.isDebt ? t.val : -t.val; t.runBal = currentRunBal; });
+        sTxsAll.reverse(); // Newest first
 
-        displayTxs.reverse(); // Newest first for UI
-
-        // Update UI Text
         document.getElementById('stmtBalance').innerText = "Rs. " + currentRunBal.toLocaleString('en-IN', {minimumFractionDigits: 2});
-        document.getElementById('printSupName').innerText = `Supplier: ${s.name} ${s.phone ? ' | Ph: '+s.phone : ''}`;
         
-        let dateText = "All Time";
-        if(fStart || fEnd) dateText = `Period: ${fStart || 'Start'} to ${fEnd || 'Present'}`;
-        document.getElementById('printDateRange').innerText = dateText;
-
-        const phoneContainer = document.getElementById('stmtPhoneContainer');
-        if (s.phone) { phoneContainer.innerHTML = `<a href="tel:${s.phone}" class="btn-call">📞 Call ${s.name}</a>`; } 
-        else { phoneContainer.innerHTML = ''; }
+        const phoneCont = document.getElementById('stmtPhoneContainer');
+        if (s.phone) { phoneCont.innerHTML = `<a href="tel:${s.phone}" style="color:var(--blue); font-size:14px; font-weight:600; text-decoration:none;">📞 Call ${s.name}</a>`; } else { phoneCont.innerHTML = ''; }
 
         const hist = document.getElementById('statementHistory'); hist.innerHTML = '';
-        displayTxs.forEach(t => {
+        
+        sTxsAll.forEach(t => {
             let title = t.type || (t.isDebt ? 'Bill' : 'Payment');
-            if (t.id.includes("_ob")) title = "Opening Balance";
-
             hist.innerHTML += `
-                <div class="card" style="border-left:5px solid ${t.isDebt?'var(--red)':'var(--green)'}; border-bottom: 1px solid #e2e8f0;">
-                    <div class="sup-row">
-                        <span style="font-weight:800; color:var(--text-dark);">${title}</span>
-                        <span style="font-weight:900; font-size:16px;">Rs. ${t.val.toLocaleString('en-IN')}</span>
+                <div class="tx-card">
+                    <div class="tx-top">
+                        <span class="tx-title">${title}</span>
+                        <span class="tx-amt" style="color:${t.isDebt?'var(--red)':'var(--green)'}">Rs. ${t.val.toLocaleString('en-IN')}</span>
                     </div>
-                    <div class="sup-meta" style="margin:6px 0">${t.date}</div>
-                    <div class="sup-meta" style="font-weight:700; color:var(--primary);">Run Bal: Rs. ${t.runBal.toLocaleString('en-IN')}</div>
-                    ${t.img ? `<img src="${t.img}" style="width:100%; max-width:200px; border-radius:8px; margin-top:10px;">` : ''}
-                    <button class="btn-del" onclick="deleteTx('${t.id}')">Delete</button>
+                    <div class="tx-meta">
+                        <span>${t.date}</span>
+                        <span>Bal: Rs. ${t.runBal.toLocaleString('en-IN')}</span>
+                    </div>
+                    ${t.img ? `<img src="${t.img}" onclick="openImage(this.src)" style="width:100px; border-radius:8px; margin-top:8px; border: 1px solid var(--border); cursor: zoom-in;">` : ''}
+                    <div class="tx-actions">
+                        <button class="btn-text delete" onclick="deleteTx('${t.id}')">Delete</button>
+                    </div>
                 </div>`;
         });
     }
 
-    function filterDirectory() {
-        const q = document.getElementById('searchInput').value.toLowerCase();
-        document.querySelectorAll('#supplierList .card').forEach(c => { c.style.display = c.innerText.toLowerCase().includes(q) ? 'block' : 'none'; });
-    }
-
+    function filterDirectory() { const q = document.getElementById('searchInput').value.toLowerCase(); document.querySelectorAll('#supplierList .sup-row').forEach(c => { c.style.display = c.innerText.toLowerCase().includes(q) ? 'flex' : 'none'; }); }
     function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2500); }
-    function clearData() { if(confirm("DANGER: This will permanently format the ledger. Type 'YES' to confirm:")) { wipeDatabase(); localStorage.clear(); location.reload(); } }
-    
-    // --- EXCEL BACKUP & END SHIFT LOGIC ---
-    function endShift() { if(confirm("End Shift? Prompting backup...")) { exportToCSV(true); } }
 
-    async function exportToCSV(isShiftEnding = false) {
-        if (txs.length === 0 && suppliers.length === 0) {
-            showToast("No data to backup");
-            if (isShiftEnding) lockApp();
-            return;
-        }
-        
+    function exportToCSV() {
+        if (txs.length === 0 && suppliers.length === 0) return showToast("No data to export");
         let csv = "Date,Firm Name,Category,Phone,Transaction Type,Amount\n";
-        txs.forEach(t => {
-            let sup = suppliers.find(s => s.id === t.supId) || {};
-            let txType = t.type || (t.isDebt ? 'Bill' : 'Payment');
-            if (t.id.includes("_ob")) txType = "Opening Balance";
-            csv += `${t.date},${sup.name || 'Unknown'},${sup.category || ''},${sup.phone || ''},${txType},${t.val}\n`;
-        });
-        
-        const fileName = "GarmentOS_Master_Backup_" + new Date().toISOString().split('T')[0] + ".csv";
-        const file = new File([csv], fileName, { type: 'text/csv' });
-        
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({ title: 'GarmentOS Master Backup', files: [file] });
-                resetBackupTracker();
-                if (isShiftEnding) lockApp();
-            } catch (e) { if (isShiftEnding) lockApp(); }
-        } else {
-            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csv);
-            const a = document.createElement('a'); 
-            a.href = encodedUri; a.download = fileName; 
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            resetBackupTracker(); showToast("Downloaded");
-            if (isShiftEnding) setTimeout(lockApp, 1000);
-        }
-    }
-
-    // --- IMPORT LOGIC ---
-    function importCSV(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        if(!confirm("Warning: Restoring will overwrite your entire app. Proceed?")) { document.getElementById('importFile').value = ''; return; }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const lines = e.target.result.split('\n');
-            if(lines.length < 2) return showToast("Invalid File Format");
-            
-            wipeDatabase(); suppliers = []; txs = []; let importedCount = 0;
-
-            for(let i=1; i<lines.length; i++) {
-                if(!lines[i].trim()) continue;
-                const cols = lines[i].split(',');
-                if(cols.length >= 6) {
-                    let date = cols[0].trim(), firmName = cols[1].trim(), category = cols[2].trim(), phone = cols[3].trim(), type = cols[4].trim(), val = parseFloat(cols[5]);
-                    if (isNaN(val)) continue;
-
-                    let sup = suppliers.find(s => s.name === firmName);
-                    if(!sup) {
-                        sup = { id: "IMP_" + Date.now().toString() + Math.random().toString().slice(2,8), name: firmName, category: category, phone: phone};
-                        suppliers.push(sup); saveToStore("suppliers", sup);
-                    }
-                    
-                    let isDebt = (type === 'Bill' || type === 'Opening Balance');
-                    let newTx = { id: "TX_" + Date.now().toString() + Math.random().toString().slice(2,8), supId: sup.id, val: val, isDebt: isDebt, type: type, date: date, img: null };
-                    txs.push(newTx); saveToStore("txs", newTx); importedCount++;
-                }
-            }
-            resetBackupTracker(); renderUI(); showToast(`Success! Restored ${importedCount} transactions.`);
-            document.getElementById('importFile').value = '';
-        };
-        reader.readAsText(file);
+        txs.forEach(t => { let sup = suppliers.find(s => s.id === t.supId) || {}; let txType = t.type || (t.isDebt ? 'Bill' : 'Payment'); csv += `${t.date},${sup.name || 'Unknown'},${sup.category || ''},${sup.phone || ''},${txType},${t.val}\n`; });
+        const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csv);
+        const a = document.createElement('a'); a.href = encodedUri; a.download = "Rabi_Kapada_Ledger_Backup.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 </script>
 </body>
