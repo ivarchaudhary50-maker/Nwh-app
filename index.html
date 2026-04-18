@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Rabi Kapada - Cloud Storage</title>
+    <title>Rabi Kapada - Lightning Ledger</title>
     
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
@@ -11,7 +11,6 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
     <style>
         :root {
@@ -348,10 +347,9 @@
     };
 
     let db;
-    let storage;
     let suppliers = [];
     let txs = [];
-    let savedPin = localStorage.getItem('v33_pin');
+    let savedPin = localStorage.getItem('v34_pin');
     
     const AVATAR_COLORS = ['linear-gradient(135deg, #f43f5e, #be123c)', 'linear-gradient(135deg, #f97316, #c2410c)', 'linear-gradient(135deg, #eab308, #a16207)', 'linear-gradient(135deg, #10b981, #047857)', 'linear-gradient(135deg, #0ea5e9, #0369a1)', 'linear-gradient(135deg, #8b5cf6, #6d28d9)', 'linear-gradient(135deg, #d946ef, #a21caf)'];
     function getAvatarColor(name) {
@@ -369,7 +367,7 @@
         const val = document.getElementById('pinInput').value;
         if (!savedPin) { 
             if(val.length !== 4) return alert("PIN must be exactly 4 digits");
-            localStorage.setItem('v33_pin', val); savedPin = val; startApp(); 
+            localStorage.setItem('v34_pin', val); savedPin = val; startApp(); 
         }
         else if (val === savedPin) { startApp(); }
         else { document.getElementById('pinInput').value = ''; }
@@ -389,7 +387,6 @@
 
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         db = firebase.firestore();
-        storage = firebase.storage(); // Initialize Firebase Storage
 
         db.collection("suppliers").onSnapshot((snapshot) => {
             suppliers = [];
@@ -520,7 +517,7 @@
         showToast("Firm Updated");
     }
 
-    // --- CLOUD STORAGE & TRANSACTION CRUD ---
+    // --- LIGHTNING FAST BASE64 TRANSACTION CRUD ---
     function processEntry(isDebt, type) {
         const id = document.getElementById('supplierSelect').value; 
         const val = parseFloat(document.getElementById('amt').value);
@@ -528,19 +525,25 @@
         
         const f = document.getElementById('txImage').files[0];
         if (f) {
-            showToast("Compressing photo...");
+            setCloudStatus('sync', 'Compressing Photo...');
             const reader = new FileReader(); reader.readAsDataURL(f);
             reader.onload = e => { 
                 const img = new Image(); img.src = e.target.result; 
                 img.onload = () => { 
                     const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
-                    const scale = 800 / img.width; canvas.width = 800; canvas.height = img.height * scale; 
-                    ctx.drawImage(img, 0, 0, 800, canvas.height); 
                     
-                    // Convert canvas to blob for Cloud Storage
-                    canvas.toBlob((blob) => {
-                        uploadImageToStorageAndSave(blob, id, val, isDebt, type);
-                    }, 'image/jpeg', 0.6);
+                    // HYPER COMPRESSION: Max 600px width
+                    const MAX_WIDTH = 600;
+                    let scale = 1;
+                    if (img.width > MAX_WIDTH) scale = MAX_WIDTH / img.width;
+                    
+                    canvas.width = img.width * scale; 
+                    canvas.height = img.height * scale; 
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height); 
+                    
+                    // 0.4 Quality forces the size down to just a few kilobytes
+                    const lightningBase64 = canvas.toDataURL('image/jpeg', 0.4);
+                    saveRecord(id, val, isDebt, type, lightningBase64);
                 }; 
             };
         } else {
@@ -548,24 +551,8 @@
         }
     }
 
-    function uploadImageToStorageAndSave(blob, supId, val, isDebt, type) {
-        const fileName = "receipts/IMG_" + Date.now() + ".jpg";
-        const storageRef = storage.ref(fileName);
-        const uploadTask = storageRef.put(blob);
-
-        uploadTask.on('state_changed', 
-            (snapshot) => { setCloudStatus('sync', 'Uploading Photo...'); },
-            (error) => { setCloudStatus('error', 'Upload Failed'); showToast("Photo upload failed"); },
-            () => {
-                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                    saveRecord(supId, val, isDebt, type, downloadURL);
-                });
-            }
-        );
-    }
-
-    function saveRecord(supId, val, isDebt, type, imgUrl) {
-        const newTx = { id: Date.now().toString(), supId: supId, val: val, isDebt: isDebt, type: type, date: document.getElementById('txDate').value, img: imgUrl };
+    function saveRecord(supId, val, isDebt, type, imgData) {
+        const newTx = { id: Date.now().toString(), supId: supId, val: val, isDebt: isDebt, type: type, date: document.getElementById('txDate').value, img: imgData };
         saveToCloud("txs", newTx); 
         document.getElementById('amt').value = ''; document.getElementById('txImage').value = ''; showToast(type + " Saved");
     }
@@ -601,28 +588,23 @@
 
         const f = document.getElementById('editTxImage').files[0];
         if(f) {
-            showToast("Processing new photo...");
+            setCloudStatus('sync', 'Compressing Photo...');
             const reader = new FileReader(); reader.readAsDataURL(f);
             reader.onload = e => { 
                 const img = new Image(); img.src = e.target.result; 
                 img.onload = () => { 
                     const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
-                    const scale = 800 / img.width; canvas.width = 800; canvas.height = img.height * scale; 
-                    ctx.drawImage(img, 0, 0, 800, canvas.height); 
                     
-                    canvas.toBlob((blob) => {
-                        const fileName = "receipts/IMG_" + Date.now() + ".jpg";
-                        const uploadTask = storage.ref(fileName).put(blob);
-                        uploadTask.on('state_changed', 
-                            () => { setCloudStatus('sync', 'Uploading Photo...'); },
-                            (err) => { showToast("Upload failed"); },
-                            () => {
-                                uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
-                                    finalizeTxSave(id, supId, amt, isDebt, type, date, downloadURL); 
-                                });
-                            }
-                        );
-                    }, 'image/jpeg', 0.6);
+                    const MAX_WIDTH = 600;
+                    let scale = 1;
+                    if (img.width > MAX_WIDTH) scale = MAX_WIDTH / img.width;
+                    
+                    canvas.width = img.width * scale; 
+                    canvas.height = img.height * scale; 
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height); 
+                    
+                    const lightningBase64 = canvas.toDataURL('image/jpeg', 0.4);
+                    finalizeTxSave(id, supId, amt, isDebt, type, date, lightningBase64);
                 }; 
             };
         } else {
@@ -630,8 +612,8 @@
         }
     }
 
-    function finalizeTxSave(id, supId, val, isDebt, type, date, imgUrl) {
-        const updatedTx = { id, supId, val, isDebt, type, date, img: imgUrl };
+    function finalizeTxSave(id, supId, val, isDebt, type, date, imgData) {
+        const updatedTx = { id, supId, val, isDebt, type, date, img: imgData };
         saveToCloud("txs", updatedTx);
         closeEditTxModal();
         showToast("Transaction Updated");
@@ -695,6 +677,12 @@
         txs.forEach(t => { let sup = suppliers.find(s => s.id === t.supId) || {}; let txType = t.type || (t.isDebt ? 'Bill' : 'Payment'); csv += `${t.date},${sup.name || 'Unknown'},${sup.category || ''},${sup.phone || ''},${txType},${t.val}\n`; });
         const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csv);
         const a = document.createElement('a'); a.href = encodedUri; a.download = "Rabi_Kapada_Ledger_Backup.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+    
+    // --- PWA INSTALL TRIGGER ---
+    if ('serviceWorker' in navigator) { 
+        navigator.serviceWorker.register(URL.createObjectURL(new Blob([`self.addEventListener('fetch', function(e) {});`], { type: 'application/javascript' })))
+        .catch(console.error); 
     }
 </script>
 </body>
