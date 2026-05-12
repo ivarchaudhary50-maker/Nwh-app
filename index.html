@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Rabi Kapada - Lightning Ledger</title>
+    <title>Rabi Kapada - Multi-Firm Engine</title>
     
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="manifest" href="manifest.json">
     
+    <!-- FIREBASE CLOUD SDKs (v8 Compat) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -39,8 +40,12 @@
         .nav-icon { width: 24px; height: 24px; margin-bottom: 4px; stroke-width: 2; }
 
         .container { max-width: 600px; margin: 0 auto; padding: 0 16px 120px 16px; display: none; }
-        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 16px; position: sticky; top: 0; background: rgba(2, 6, 23, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 100; border-bottom: 1px solid var(--border); margin: 0 -16px 20px -16px;}
-        .app-header h1 { font-size: 22px; font-weight: 900; margin: 0; background: var(--primary-glow); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.5px;}
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 16px; position: sticky; top: 0; background: rgba(2, 6, 23, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 100; border-bottom: 1px solid var(--border); margin: 0 -16px 20px -16px;}
+        
+        /* WORKSPACE SWITCHER UI */
+        .workspace-selector { display: flex; flex-direction: column; }
+        .workspace-selector label { font-size: 11px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;}
+        .workspace-selector select { background: transparent; border: none; font-size: 20px; font-weight: 900; color: var(--accent-blue); outline: none; padding: 0; margin: 0; -webkit-appearance: none; font-family: inherit; width: 100%; text-shadow: 0 2px 10px rgba(56,189,248,0.2);}
 
         .bottom-nav { position: fixed; bottom: 20px; left: 20px; right: 20px; max-width: 560px; margin: 0 auto; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 30px; border: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px; z-index: 1000; box-shadow: 0 20px 40px rgba(0,0,0,0.5);}
         .nav-item { border: none; background: transparent; color: var(--text-muted); font-size: 11px; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; width: 25%; transition: 0.3s; border-radius: 20px;}
@@ -95,6 +100,7 @@
         .tx-card { background: var(--surface-elevated); border-radius: 20px; padding: 20px; margin-bottom: 12px; border: 1px solid var(--border); border-left-width: 6px; }
         .tx-title { font-weight: 800; font-size: 15px; color: var(--text-main); }
         .tx-meta { font-size: 13px; color: var(--text-muted); margin: 6px 0; font-weight: 600;}
+        .tx-note { font-size: 13px; color: var(--text-muted); font-style: italic; margin-top: 6px; background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 8px;}
         .tx-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
         .btn-icon-tiny { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-muted); font-size: 14px; padding: 8px 12px; border-radius: 12px; cursor: pointer; transition: 0.2s; }
         .btn-icon-tiny.delete { color: var(--accent-red); }
@@ -105,9 +111,12 @@
         .status-sync { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3);}
         .status-error { background: rgba(251, 113, 133, 0.15); color: var(--accent-red); border: 1px solid rgba(251, 113, 133, 0.3);}
 
-        /* MODALS */
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 15000; justify-content: center; align-items: center; padding: 20px;}
-        .edit-card { background: var(--surface); border: 1px solid var(--border); padding: 24px; border-radius: 24px; width: 100%; max-width: 400px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);}
+        /* MOBILE-OPTIMIZED SLIDE-UP MENUS (NO MORE POP-UPS) */
+        .sheet-overlay { display: none; position: fixed; inset: 0; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 15000; }
+        .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-radius: 32px 32px 0 0; padding: 32px 24px 100px 24px; z-index: 16000; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 -20px 50px rgba(0,0,0,0.5); border: 1px solid var(--border); border-bottom: none; max-height: 90vh; overflow-y: auto;}
+        .bottom-sheet.open { transform: translateY(0); }
+        
+        .sheet-handle { width: 40px; height: 6px; background: var(--surface-elevated); border-radius: 100px; margin: -16px auto 24px auto; }
 
         #pinScreen { position: fixed; inset: 0; background: var(--bg-deep); z-index: 25000; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;}
         .pin-input { width: 100%; max-width: 320px; font-size: 36px; letter-spacing: 24px; font-weight: 900; text-align: center; border: none; border-bottom: 2px solid var(--border); padding: 12px; margin: 40px 0; outline: none; background: transparent; color: var(--text-main); transition: 0.3s;}
@@ -129,97 +138,115 @@
 
 <div id="toast">Message</div>
 
+<!-- IMAGE VIEWER -->
 <div id="imageViewer" onclick="this.style.display='none'">
     <div class="close-viewer"><svg class="svg-icon"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
     <img id="fullImage" src="" />
 </div>
 
-<div id="editTxModalOverlay" class="modal-overlay">
-    <div class="edit-card">
-        <h3 style="margin:0 0 20px 0; color:var(--text-main); font-weight: 900; font-size: 20px;">Edit Transaction</h3>
-        
-        <div class="floating-input">
-            <select id="editSupId" required></select>
-            <label>Transfer to Firm</label>
-        </div>
-        
-        <div class="floating-input">
-            <select id="editType" required>
-                <option value="Bill">Bill</option>
-                <option value="Payment">Payment</option>
-                <option value="Opening Balance">Opening Balance</option>
-            </select>
-            <label>Transaction Type</label>
-        </div>
-        
-        <div class="floating-input">
-            <input type="number" id="editAmt" placeholder=" " required>
-            <label>Amount (Rs)</label>
-        </div>
-        
-        <div class="floating-input">
-            <input type="date" id="editDate" required>
-            <label>Date</label>
-        </div>
-        
-        <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: block;">Update Photo (Optional)</label>
-        <input type="file" id="editTxImage" accept="image/*" capture="environment" style="width: 100%; background: var(--surface-elevated); border: 2px dashed var(--border); padding: 12px; border-radius: 12px; color: var(--text-muted); margin-bottom: 24px; cursor: pointer;">
-        
-        <input type="hidden" id="editTxId">
-        <input type="hidden" id="editTxOldImg">
-        
-        <div style="display:flex; gap:12px;">
-            <button class="btn" style="background:var(--surface-elevated); color:var(--text-main); border:1px solid var(--border);" onclick="closeEditTxModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="saveTxEdit()">Save Changes</button>
-        </div>
+<!-- SLIDE-UP OVERLAY BACKDROP -->
+<div id="sheetOverlay" class="sheet-overlay" onclick="closeSheets()"></div>
+
+<!-- ADVANCED TRANSACTION EDITOR (SLIDE-UP SHEET) -->
+<div id="editTxSheet" class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <h3 style="margin:0 0 20px 0; color:var(--text-main); font-weight: 900; font-size: 20px;">Edit Transaction</h3>
+    
+    <div class="floating-input">
+        <select id="editSupId" required></select>
+        <label>Transfer to Firm</label>
+    </div>
+    
+    <div class="floating-input">
+        <select id="editType" required>
+            <option value="Bill">Bill</option>
+            <option value="Payment">Payment</option>
+            <option value="Opening Balance">Opening Balance</option>
+        </select>
+        <label>Transaction Type</label>
+    </div>
+    
+    <div class="floating-input">
+        <input type="number" id="editAmt" placeholder=" " required>
+        <label>Amount (Rs)</label>
+    </div>
+    
+    <div class="floating-input">
+        <input type="date" id="editDate" required>
+        <label>Date</label>
+    </div>
+
+    <div class="floating-input">
+        <input type="text" id="editNotes" placeholder=" ">
+        <label>Notes (Optional)</label>
+    </div>
+    
+    <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: block;">Update Photo (Optional)</label>
+    <input type="file" id="editTxImage" accept="image/*" style="width: 100%; background: var(--surface-elevated); border: 2px dashed var(--border); padding: 12px; border-radius: 12px; color: var(--text-muted); margin-bottom: 24px; cursor: pointer;">
+    
+    <input type="hidden" id="editTxId">
+    <input type="hidden" id="editTxOldImg">
+    
+    <div style="display:flex; gap:12px;">
+        <button class="btn" style="background:var(--surface-elevated); color:var(--text-main); border:1px solid var(--border);" onclick="closeSheets()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTxEdit()">Save Changes</button>
     </div>
 </div>
 
-<div id="editFirmModalOverlay" class="modal-overlay">
-    <div class="edit-card">
-        <h3 style="margin:0 0 20px 0; color:var(--text-main); font-weight: 900; font-size: 20px;">Edit Firm Profile</h3>
-        
-        <div class="floating-input">
-            <input type="text" id="editFirmName" placeholder=" " required>
-            <label>Firm Name</label>
-        </div>
-        
-        <div class="floating-input">
-            <input type="text" id="editFirmCategory" placeholder=" ">
-            <label>Category</label>
-        </div>
-        
-        <div class="floating-input">
-            <input type="tel" id="editFirmPhone" placeholder=" ">
-            <label>Phone Number</label>
-        </div>
-        
-        <input type="hidden" id="editFirmId">
-        
-        <div style="display:flex; gap:12px;">
-            <button class="btn" style="background:var(--surface-elevated); color:var(--text-main); border:1px solid var(--border);" onclick="closeEditFirmModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="saveFirmEdit()">Update Firm</button>
-        </div>
+<!-- FIRM PROFILE EDITOR (SLIDE-UP SHEET) -->
+<div id="editFirmSheet" class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <h3 style="margin:0 0 20px 0; color:var(--text-main); font-weight: 900; font-size: 20px;">Edit Firm Profile</h3>
+    
+    <div class="floating-input">
+        <input type="text" id="editFirmName" placeholder=" " required>
+        <label>Firm Name</label>
+    </div>
+    
+    <div class="floating-input">
+        <input type="text" id="editFirmCategory" placeholder=" ">
+        <label>Category</label>
+    </div>
+    
+    <div class="floating-input">
+        <input type="tel" id="editFirmPhone" placeholder=" ">
+        <label>Phone Number</label>
+    </div>
+    
+    <input type="hidden" id="editFirmId">
+    
+    <div style="display:flex; gap:12px;">
+        <button class="btn" style="background:var(--surface-elevated); color:var(--text-main); border:1px solid var(--border);" onclick="closeSheets()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveFirmEdit()">Update Firm</button>
     </div>
 </div>
 
+<!-- PIN SCREEN -->
 <div id="pinScreen">
     <div style="width: 72px; height: 72px; background: rgba(56,189,248,0.1); color: var(--accent-blue); border-radius: 24px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
         <svg class="svg-icon" style="width: 36px; height: 36px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <h2 style="margin:0 0 8px 0; font-size: 28px; font-weight: 900; background: var(--primary-glow); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Rabi Kapada</h2>
+    <h2 style="margin:0 0 8px 0; font-size: 28px; font-weight: 900; background: var(--primary-glow); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">GarmentOS</h2>
     <p style="color:var(--text-muted); margin:0; font-size: 14px; font-weight: 600;">Encrypted Local Session</p>
     <input type="password" id="pinInput" class="pin-input" maxlength="4" inputmode="numeric">
     <button class="btn btn-primary" onclick="verifyPin()" style="max-width: 320px;">Unlock Vault</button>
 </div>
 
+<!-- MAIN APP -->
 <div class="container" id="mainApp">
     
     <div class="app-header">
-        <h1>Payable Ledger</h1>
+        <div class="workspace-selector">
+            <label>Active Workspace</label>
+            <select id="firmSwitcher" onchange="switchWorkspace()">
+                <option value="FIRM_1">Rabi Kapada Pasal ▾</option>
+                <option value="FIRM_2">Pooja Readymade ▾</option>
+            </select>
+        </div>
         <div id="cloudStatus" class="status-sync">⏳ Syncing...</div>
     </div>
 
+    <!-- ENTRY SECTION -->
     <div id="entry" class="section active">
         <div class="card">
             <div class="floating-input">
@@ -237,9 +264,15 @@
                     <label>Date</label>
                 </div>
             </div>
+
+            <div class="floating-input">
+                <input type="text" id="txNotes" placeholder=" ">
+                <label>Notes (Optional)</label>
+            </div>
             
             <label style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; display: block; letter-spacing: 0.5px;">Paper Receipt (Optional)</label>
-            <input type="file" id="txImage" accept="image/*" capture="environment" style="width: 100%; background: var(--surface-elevated); border: 2px dashed var(--border); padding: 16px; border-radius: 16px; color: var(--text-muted); margin-bottom: 24px; cursor: pointer; font-weight: 600;">
+            
+            <input type="file" id="txImage" accept="image/*" style="width: 100%; background: var(--surface-elevated); border: 2px dashed var(--border); padding: 16px; border-radius: 16px; color: var(--text-muted); margin-bottom: 24px; cursor: pointer; font-weight: 600;">
             
             <div style="display: flex; gap: 12px; margin-bottom: 12px;">
                 <button class="btn btn-debt" onclick="processEntry(true, 'Bill')">
@@ -253,6 +286,7 @@
         </div>
     </div>
 
+    <!-- DIRECTORY SECTION -->
     <div id="suppliers" class="section">
         <div class="card">
             <button class="btn-contact" onclick="importContact()">
@@ -283,6 +317,7 @@
         <div id="supplierList" class="card" style="padding: 0 24px;"></div>
     </div>
 
+    <!-- STATEMENTS SECTION -->
     <div id="statements" class="section">
         <div class="card">
             <div class="floating-input" style="margin-bottom:0;">
@@ -301,6 +336,7 @@
         </div>
     </div>
 
+    <!-- DATA MANAGEMENT SECTION -->
     <div id="data" class="section">
         <div class="card">
             <div style="width: 56px; height: 56px; background: rgba(56,189,248,0.1); color: var(--accent-blue); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
@@ -313,6 +349,7 @@
         </div>
     </div>
 
+    <!-- NAVIGATION -->
     <div class="bottom-nav">
         <button class="nav-item active" onclick="switchTab('entry', this)">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
@@ -347,9 +384,14 @@
     };
 
     let db;
-    let suppliers = [];
-    let txs = [];
-    let savedPin = localStorage.getItem('v34_pin');
+    let allSuppliers = [];
+    let allTxs = [];
+    let activeSuppliers = [];
+    let activeTxs = [];
+    let savedPin = localStorage.getItem('v36_pin');
+    
+    // WORKSPACE ENGINE
+    let currentWorkspaceId = localStorage.getItem('v36_workspace') || 'FIRM_1';
     
     const AVATAR_COLORS = ['linear-gradient(135deg, #f43f5e, #be123c)', 'linear-gradient(135deg, #f97316, #c2410c)', 'linear-gradient(135deg, #eab308, #a16207)', 'linear-gradient(135deg, #10b981, #047857)', 'linear-gradient(135deg, #0ea5e9, #0369a1)', 'linear-gradient(135deg, #8b5cf6, #6d28d9)', 'linear-gradient(135deg, #d946ef, #a21caf)'];
     function getAvatarColor(name) {
@@ -367,7 +409,7 @@
         const val = document.getElementById('pinInput').value;
         if (!savedPin) { 
             if(val.length !== 4) return alert("PIN must be exactly 4 digits");
-            localStorage.setItem('v34_pin', val); savedPin = val; startApp(); 
+            localStorage.setItem('v36_pin', val); savedPin = val; startApp(); 
         }
         else if (val === savedPin) { startApp(); }
         else { document.getElementById('pinInput').value = ''; }
@@ -384,25 +426,39 @@
     function startApp() { 
         document.getElementById('pinScreen').style.display = 'none'; 
         document.getElementById('mainApp').style.display = 'block'; 
+        
+        document.getElementById('firmSwitcher').value = currentWorkspaceId;
 
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         db = firebase.firestore();
 
         db.collection("suppliers").onSnapshot((snapshot) => {
-            suppliers = [];
-            snapshot.forEach(doc => suppliers.push(doc.data()));
+            allSuppliers = [];
+            snapshot.forEach(doc => allSuppliers.push(doc.data()));
             renderUI();
             setCloudStatus('online', 'Live');
             if(document.getElementById('statementSelect').value) generateStatement();
         }, (error) => { setCloudStatus('error', 'Sync Failed'); });
 
         db.collection("txs").onSnapshot((snapshot) => {
-            txs = [];
-            snapshot.forEach(doc => txs.push(doc.data()));
-            txs.sort((a, b) => b.id.localeCompare(a.id)); 
+            allTxs = [];
+            snapshot.forEach(doc => allTxs.push(doc.data()));
+            allTxs.sort((a, b) => b.id.localeCompare(a.id)); 
             renderUI();
             if(document.getElementById('statementSelect').value) generateStatement();
         });
+    }
+    
+    function switchWorkspace() {
+        currentWorkspaceId = document.getElementById('firmSwitcher').value;
+        localStorage.setItem('v36_workspace', currentWorkspaceId);
+        
+        // Reset the statement view when jumping workspaces
+        document.getElementById('statementSelect').value = '';
+        document.getElementById('statementContent').style.display = 'none';
+        
+        renderUI();
+        showToast("Switched Workspace");
     }
 
     function saveToCloud(collection, data) {
@@ -432,6 +488,11 @@
 
     function renderUI() {
         document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+        
+        // FILTER DATA BY ACTIVE WORKSPACE (Legacy data defaults to FIRM_1)
+        activeSuppliers = allSuppliers.filter(s => (s.workspaceId || 'FIRM_1') === currentWorkspaceId);
+        activeTxs = allTxs.filter(t => (t.workspaceId || 'FIRM_1') === currentWorkspaceId);
+        
         const s1 = document.getElementById('supplierSelect'), s2 = document.getElementById('statementSelect'), s3 = document.getElementById('editSupId');
         const currentS1 = s1.value, currentS2 = s2.value; 
         
@@ -440,11 +501,11 @@
         s3.innerHTML = '';
         const list = document.getElementById('supplierList'); list.innerHTML = '';
         
-        if (suppliers.length === 0) {
+        if (activeSuppliers.length === 0) {
             list.innerHTML = EMPTY_FIRMS;
         } else {
-            suppliers.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
-                let bal = txs.filter(t => t.supId === s.id).reduce((acc, t) => t.isDebt ? acc + t.val : acc - t.val, 0);
+            activeSuppliers.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+                let bal = activeTxs.filter(t => t.supId === s.id).reduce((acc, t) => t.isDebt ? acc + t.val : acc - t.val, 0);
                 s1.innerHTML += `<option value="${s.id}">${s.name}</option>`; 
                 s2.innerHTML += `<option value="${s.id}">${s.name}</option>`;
                 s3.innerHTML += `<option value="${s.id}">${s.name}</option>`;
@@ -477,16 +538,27 @@
     function switchTab(id, btn) { document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active')); document.getElementById(id).classList.add('active'); if(btn) btn.classList.add('active'); if(id === 'statements') generateStatement(); }
     function jumpToStmt(id) { document.getElementById('statementSelect').value = id; switchTab('statements', document.querySelectorAll('.nav-item')[2]); }
 
+    // --- BOTTOM SHEET CONTROLLERS ---
+    function openSheet(id) {
+        document.getElementById('sheetOverlay').style.display = 'block';
+        setTimeout(() => document.getElementById(id).classList.add('open'), 10);
+    }
+    
+    function closeSheets() {
+        document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('open'));
+        setTimeout(() => document.getElementById('sheetOverlay').style.display = 'none', 400);
+    }
+
     // --- FIRM CRUD ---
     function addSupplier() {
         const name = document.getElementById('supName').value.trim(); if (!name) return showToast("Firm name required");
-        const newSup = { id: "SUP_" + Date.now().toString(), name, category: document.getElementById('supCategory').value, phone: document.getElementById('supPhone').value };
+        const newSup = { id: "SUP_" + Date.now().toString(), workspaceId: currentWorkspaceId, name, category: document.getElementById('supCategory').value, phone: document.getElementById('supPhone').value };
         saveToCloud("suppliers", newSup); 
         document.getElementById('supName').value = ''; document.getElementById('supCategory').value = ''; document.getElementById('supPhone').value = ''; showToast("Firm Registered");
     }
 
-    function openEditFirmModal(id) {
-        const s = suppliers.find(x => x.id === id); if(!s) return;
+    function openEditFirmSheet(id) {
+        const s = activeSuppliers.find(x => x.id === id); if(!s) return;
         document.getElementById('editFirmId').value = s.id;
         document.getElementById('editFirmName').value = s.name;
         document.getElementById('editFirmCategory').value = s.category || "";
@@ -496,10 +568,8 @@
         document.getElementById('editFirmCategory').focus(); document.getElementById('editFirmCategory').blur();
         document.getElementById('editFirmPhone').focus(); document.getElementById('editFirmPhone').blur();
         
-        document.getElementById('editFirmModalOverlay').style.display = 'flex';
+        openSheet('editFirmSheet');
     }
-    
-    function closeEditFirmModal() { document.getElementById('editFirmModalOverlay').style.display = 'none'; }
     
     function saveFirmEdit() {
         const id = document.getElementById('editFirmId').value;
@@ -507,20 +577,21 @@
         if(!name) return showToast("Name is required");
         
         const updatedSup = {
-            id: id, name: name,
+            id: id, workspaceId: currentWorkspaceId, name: name,
             category: document.getElementById('editFirmCategory').value,
             phone: document.getElementById('editFirmPhone').value
         };
         
         saveToCloud("suppliers", updatedSup);
-        closeEditFirmModal();
+        closeSheets();
         showToast("Firm Updated");
     }
 
-    // --- LIGHTNING FAST BASE64 TRANSACTION CRUD ---
+    // --- TRANSACTION CRUD ---
     function processEntry(isDebt, type) {
         const id = document.getElementById('supplierSelect').value; 
         const val = parseFloat(document.getElementById('amt').value);
+        const notes = document.getElementById('txNotes').value.trim();
         if (!id || isNaN(val)) return showToast("Please enter an amount");
         
         const f = document.getElementById('txImage').files[0];
@@ -532,7 +603,6 @@
                 img.onload = () => { 
                     const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
                     
-                    // HYPER COMPRESSION: Max 600px width
                     const MAX_WIDTH = 600;
                     let scale = 1;
                     if (img.width > MAX_WIDTH) scale = MAX_WIDTH / img.width;
@@ -541,39 +611,38 @@
                     canvas.height = img.height * scale; 
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height); 
                     
-                    // 0.4 Quality forces the size down to just a few kilobytes
                     const lightningBase64 = canvas.toDataURL('image/jpeg', 0.4);
-                    saveRecord(id, val, isDebt, type, lightningBase64);
+                    saveRecord(id, val, isDebt, type, lightningBase64, notes);
                 }; 
             };
         } else {
-            saveRecord(id, val, isDebt, type, null);
+            saveRecord(id, val, isDebt, type, null, notes);
         }
     }
 
-    function saveRecord(supId, val, isDebt, type, imgData) {
-        const newTx = { id: Date.now().toString(), supId: supId, val: val, isDebt: isDebt, type: type, date: document.getElementById('txDate').value, img: imgData };
+    function saveRecord(supId, val, isDebt, type, imgData, notes) {
+        const newTx = { id: Date.now().toString(), workspaceId: currentWorkspaceId, supId: supId, val: val, isDebt: isDebt, type: type, date: document.getElementById('txDate').value, notes: notes, img: imgData };
         saveToCloud("txs", newTx); 
-        document.getElementById('amt').value = ''; document.getElementById('txImage').value = ''; showToast(type + " Saved");
+        document.getElementById('amt').value = ''; document.getElementById('txImage').value = ''; document.getElementById('txNotes').value = ''; showToast(type + " Saved");
     }
 
-    function openEditTxModal(id) {
-        const tx = txs.find(t => t.id === id); if(!tx) return;
+    function openEditTxSheet(id) {
+        const tx = activeTxs.find(t => t.id === id); if(!tx) return;
         document.getElementById('editTxId').value = tx.id;
         document.getElementById('editSupId').value = tx.supId;
         document.getElementById('editAmt').value = tx.val;
         document.getElementById('editDate').value = tx.date;
         document.getElementById('editType').value = tx.type || (tx.isDebt ? 'Bill' : 'Payment');
+        document.getElementById('editNotes').value = tx.notes || "";
         document.getElementById('editTxOldImg').value = tx.img || "";
         document.getElementById('editTxImage').value = ''; 
         
         document.getElementById('editAmt').focus(); document.getElementById('editAmt').blur();
         document.getElementById('editDate').focus(); document.getElementById('editDate').blur();
+        document.getElementById('editNotes').focus(); document.getElementById('editNotes').blur();
         
-        document.getElementById('editTxModalOverlay').style.display = 'flex';
+        openSheet('editTxSheet');
     }
-
-    function closeEditTxModal() { document.getElementById('editTxModalOverlay').style.display = 'none'; }
 
     function saveTxEdit() {
         const id = document.getElementById('editTxId').value;
@@ -581,6 +650,7 @@
         const amt = parseFloat(document.getElementById('editAmt').value);
         const date = document.getElementById('editDate').value;
         const type = document.getElementById('editType').value;
+        const notes = document.getElementById('editNotes').value.trim();
         const isDebt = (type === 'Bill' || type === 'Opening Balance');
         const oldImgUrl = document.getElementById('editTxOldImg').value;
         
@@ -604,18 +674,18 @@
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height); 
                     
                     const lightningBase64 = canvas.toDataURL('image/jpeg', 0.4);
-                    finalizeTxSave(id, supId, amt, isDebt, type, date, lightningBase64);
+                    finalizeTxSave(id, supId, amt, isDebt, type, date, lightningBase64, notes);
                 }; 
             };
         } else {
-            finalizeTxSave(id, supId, amt, isDebt, type, date, oldImgUrl === "" ? null : oldImgUrl);
+            finalizeTxSave(id, supId, amt, isDebt, type, date, oldImgUrl === "" ? null : oldImgUrl, notes);
         }
     }
 
-    function finalizeTxSave(id, supId, val, isDebt, type, date, imgData) {
-        const updatedTx = { id, supId, val, isDebt, type, date, img: imgData };
+    function finalizeTxSave(id, supId, val, isDebt, type, date, imgData, notes) {
+        const updatedTx = { id, workspaceId: currentWorkspaceId, supId, val, isDebt, type, date, notes: notes, img: imgData };
         saveToCloud("txs", updatedTx);
-        closeEditTxModal();
+        closeSheets();
         showToast("Transaction Updated");
     }
 
@@ -626,8 +696,8 @@
         const id = document.getElementById('statementSelect').value; const cont = document.getElementById('statementContent');
         if (!id) { cont.style.display = 'none'; return; }
         
-        cont.style.display = 'block'; const s = suppliers.find(x => x.id === id);
-        let sTxsAll = txs.filter(t => t.supId === id).sort((a, b) => new Date(a.date) - new Date(b.date));
+        cont.style.display = 'block'; const s = activeSuppliers.find(x => x.id === id);
+        let sTxsAll = activeTxs.filter(t => t.supId === id).sort((a, b) => new Date(a.date) - new Date(b.date));
         
         let currentRunBal = 0; 
         sTxsAll.forEach(t => { currentRunBal += t.isDebt ? t.val : -t.val; t.runBal = currentRunBal; });
@@ -638,7 +708,7 @@
         const phoneCont = document.getElementById('stmtPhoneContainer');
         let actionBtns = '';
         if (s.phone) { actionBtns += `<a href="tel:${s.phone}" class="btn-call-tiny">📞 Call</a>`; }
-        actionBtns += `<button onclick="openEditFirmModal('${s.id}')" class="btn-call-tiny btn-edit-firm">✏️ Edit Firm</button>`;
+        actionBtns += `<button onclick="openEditFirmSheet('${s.id}')" class="btn-call-tiny btn-edit-firm">✏️ Edit Firm</button>`;
         phoneCont.innerHTML = actionBtns;
 
         const hist = document.getElementById('statementHistory'); hist.innerHTML = '';
@@ -658,9 +728,10 @@
                             <span>${t.date}</span>
                             <span style="color:var(--accent-blue); font-weight:800;">Bal: Rs. ${t.runBal.toLocaleString('en-IN')}</span>
                         </div>
-                        ${t.img ? `<img src="${t.img}" onclick="openImage(this.src)" style="width:100%; max-width: 140px; border-radius:12px; margin-top:8px; border: 1px solid var(--border); cursor: zoom-in;">` : ''}
+                        ${t.notes ? `<div class="tx-note">📝 ${t.notes}</div>` : ''}
+                        ${t.img ? `<img src="${t.img}" onclick="openImage(this.src)" style="width:100%; max-width: 140px; border-radius:12px; margin-top:12px; border: 1px solid var(--border); cursor: zoom-in;">` : ''}
                         <div class="tx-actions">
-                            <button class="btn-icon-tiny edit" onclick="openEditTxModal('${t.id}')"><svg class="svg-icon" style="width:16px;height:16px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                            <button class="btn-icon-tiny edit" onclick="openEditTxSheet('${t.id}')"><svg class="svg-icon" style="width:16px;height:16px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                             <button class="btn-icon-tiny delete" onclick="deleteTx('${t.id}')"><svg class="svg-icon" style="width:16px;height:16px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                         </div>
                     </div>`;
@@ -672,14 +743,19 @@
     function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2500); }
 
     function exportToCSV() {
-        if (txs.length === 0 && suppliers.length === 0) return showToast("No data to export");
-        let csv = "Date,Firm Name,Category,Phone,Transaction Type,Amount\n";
-        txs.forEach(t => { let sup = suppliers.find(s => s.id === t.supId) || {}; let txType = t.type || (t.isDebt ? 'Bill' : 'Payment'); csv += `${t.date},${sup.name || 'Unknown'},${sup.category || ''},${sup.phone || ''},${txType},${t.val}\n`; });
+        if (activeTxs.length === 0 && activeSuppliers.length === 0) return showToast("No data to export");
+        let csv = "Date,Firm Name,Category,Phone,Transaction Type,Amount,Notes\n";
+        activeTxs.forEach(t => { 
+            let sup = activeSuppliers.find(s => s.id === t.supId) || {}; 
+            let txType = t.type || (t.isDebt ? 'Bill' : 'Payment'); 
+            let noteStr = t.notes ? `"${t.notes.replace(/"/g, '""')}"` : ""; 
+            csv += `${t.date},"${sup.name || 'Unknown'}",${sup.category || ''},${sup.phone || ''},${txType},${t.val},${noteStr}\n`; 
+        });
+        let firmNameStr = currentWorkspaceId === 'FIRM_1' ? "Rabi_Kapada" : "Pooja_Readymade";
         const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csv);
-        const a = document.createElement('a'); a.href = encodedUri; a.download = "Rabi_Kapada_Ledger_Backup.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        const a = document.createElement('a'); a.href = encodedUri; a.download = `${firmNameStr}_Ledger_Backup.csv`; document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
     
-    // --- PWA INSTALL TRIGGER ---
     if ('serviceWorker' in navigator) { 
         navigator.serviceWorker.register(URL.createObjectURL(new Blob([`self.addEventListener('fetch', function(e) {});`], { type: 'application/javascript' })))
         .catch(console.error); 
