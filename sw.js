@@ -1,4 +1,4 @@
-const CACHE_NAME = 'garmentos-cache-v1';
+const CACHE_NAME = 'karobar-cache-v1';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -6,13 +6,14 @@ const STATIC_ASSETS = [
   './icon.png',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
-  'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
-  'https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js'
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS);
+    })
   );
   self.skipWaiting();
 });
@@ -31,8 +32,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
+  // Bypass cache for Firestore socket communication and Auth endpoints
   if (requestUrl.hostname.includes('firestore.googleapis.com') ||
-      requestUrl.hostname.includes('firebasestorage.googleapis.com') ||
       requestUrl.hostname.includes('identitytoolkit.googleapis.com')) {
     return;
   }
@@ -53,7 +54,9 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
         const responseToCache = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
         return response;
       });
     })
